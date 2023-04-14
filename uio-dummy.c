@@ -65,13 +65,19 @@
  *
 @*/
 #include <linux/module.h>
+#include <linux/kernel.h>
 #include <linux/slab.h>
+#include <linux/seq_file.h>
+#include <linux/proc_fs.h>
 #include <linux/device.h>
 #include <linux/uio_driver.h>
+#include <linux/version.h>
 
 static struct uio_info *info;
 static struct device *dev;
 static unsigned long long mem_size = 2692759552 + 32;
+
+#define UIO_DUMMY_VERSION "00.01.00"
 
 module_param(mem_size, ullong, S_IRUGO);
 
@@ -80,7 +86,45 @@ static void my_release(struct device *dev)
 	printk(KERN_INFO "releasing my uio device\n");
 }
 
-// MODULE_PARAM_DESC(base_addr, "Base address shift for memory address");
+static int uio_dummy_proc_show(struct seq_file *m, void *v)
+{
+    seq_printf(m, "UIO Dummy driver v%s\n", UIO_DUMMY_VERSION);
+    seq_printf(m, "    Allocated memory: %llu\n", mem_size);
+    
+    return 0;
+}
+
+static int uio_dummy_proc_open(struct inode *inode, struct file *file)
+{
+    return single_open(file, uio_dummy_proc_show, NULL);
+}
+
+static ssize_t uio_dummy_proc_write(struct file* file, const char __user* ubuf, size_t count, loff_t* ppos)
+{
+    printk(KERN_DEBUG "Triggering event through write of proc file\n");
+    uio_event_notify(info);
+
+    return count;
+}
+
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,6,0)
+static struct file_operations uio_dummy_proc_operations = {
+    .owner = THIS_MODULE,
+    .open = uio_dummy_proc_open,
+    .read = seq_read,
+    .write = uio_dummy_proc_write,
+    .llseek = seq_lseek,
+    .release = single_release
+};
+#else
+static struct proc_ops uio_dummy_proc_operations = {
+    .proc_open = uio_dummy_proc_open,
+    .proc_read = seq_read,
+    .proc_write = uio_dummy_proc_write,
+    .proc_lseek = seq_lseek,
+    .proc_release = single_release
+};
+#endif
 
 static int __init my_init(void)
 {
@@ -92,7 +136,7 @@ static int __init my_init(void)
 
 	info = kzalloc(sizeof(struct uio_info), GFP_KERNEL);
 	info->name = "uio_dummy_device";
-	info->version = "0.0.1";
+	info->version = UIO_DUMMY_VERSION;
 	info->irq = UIO_IRQ_NONE;
 
 	mem = &info->mem[0];
@@ -102,7 +146,7 @@ static int __init my_init(void)
 	mem->name = "MEM_00";
 
 	if (uio_register_device(dev, info) < 0) {
-		free_pages(mem->addr, 10);
+        vfree((const void*)mem->addr);
 		device_unregister(dev);
 		kfree(dev);
 		kfree(info);
@@ -110,6 +154,8 @@ static int __init my_init(void)
 		return -1;
 	}
 	printk(KERN_INFO "Allocating %llu bytes for mem0", mem_size);
+
+    proc_create_data("uio-dummy", 0666, NULL, &uio_dummy_proc_operations, dev);
 	return 0;
 }
 
@@ -119,6 +165,7 @@ static void __exit my_exit(void)
 	uio_unregister_device(info);
 	vfree((const void *)mem->addr);
 	device_unregister(dev);
+    remove_proc_entry("uio-dummy", NULL);
 	printk(KERN_INFO "Un-Registered UIO handler\n");
 	kfree(info);
 	kfree(dev);
@@ -130,3 +177,4 @@ module_exit(my_exit);
 MODULE_AUTHOR("Jens Georg <jens.georg@desy.de>");
 MODULE_DESCRIPTION("An UIO dummy driver");
 MODULE_LICENSE("GPL v2");
+MODULE_VERSION(UIO_DUMMY_VERSION);
