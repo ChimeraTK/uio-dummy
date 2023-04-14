@@ -76,6 +76,7 @@
 static struct uio_info *info;
 static struct device *dev;
 static unsigned long long mem_size = 2692759552 + 32;
+static bool irqs_enabled = false;
 
 #define UIO_DUMMY_VERSION "00.01.00"
 
@@ -101,8 +102,12 @@ static int uio_dummy_proc_open(struct inode *inode, struct file *file)
 
 static ssize_t uio_dummy_proc_write(struct file* file, const char __user* ubuf, size_t count, loff_t* ppos)
 {
+    if (irqs_enabled) {
     printk(KERN_DEBUG "Triggering event through write of proc file\n");
     uio_event_notify(info);
+    } else {
+        printk(KERN_DEBUG "User did not enable IRQs, not firing\n");
+    }
 
     return count;
 }
@@ -126,7 +131,15 @@ static struct proc_ops uio_dummy_proc_operations = {
 };
 #endif
 
-static int __init my_init(void)
+static int uio_dummy_irq_control(struct uio_info *dev_info, s32 irq_on)
+{
+    printk(KERN_INFO "Userspace requested IRQ generation %d\n", irq_on);
+    irqs_enabled = irq_on != 0;
+
+    return 0;
+}
+
+static int __init uio_dummy_init(void)
 {
 	struct uio_mem *mem;
 	dev = kzalloc(sizeof(struct device), GFP_KERNEL);
@@ -137,13 +150,19 @@ static int __init my_init(void)
 	info = kzalloc(sizeof(struct uio_info), GFP_KERNEL);
 	info->name = "uio_dummy_device";
 	info->version = UIO_DUMMY_VERSION;
-	info->irq = UIO_IRQ_NONE;
 
+    // CUSTOM -> We do not have a hardware IRQ, but we generate
+    // IRQs towards the user otherwise, in this case by getting our proc
+    // file written to
+	info->irq = UIO_IRQ_CUSTOM;
+    info->irqcontrol = uio_dummy_irq_control;
+
+    // Just allocate a slab of virtual memory to be exposed through mmap
 	mem = &info->mem[0];
 	mem->memtype = UIO_MEM_VIRTUAL;
 	mem->addr = (phys_addr_t)vmalloc(mem_size);
 	mem->size = mem_size;
-	mem->name = "MEM_00";
+	mem->name = "UIO dummy memory block";
 
 	if (uio_register_device(dev, info) < 0) {
         vfree((const void*)mem->addr);
@@ -159,7 +178,7 @@ static int __init my_init(void)
 	return 0;
 }
 
-static void __exit my_exit(void)
+static void __exit uio_dummy_exit(void)
 {
 	struct uio_mem *mem = &info->mem[0];
 	uio_unregister_device(info);
@@ -171,8 +190,8 @@ static void __exit my_exit(void)
 	kfree(dev);
 }
 
-module_init(my_init);
-module_exit(my_exit);
+module_init(uio_dummy_init);
+module_exit(uio_dummy_exit);
 
 MODULE_AUTHOR("Jens Georg <jens.georg@desy.de>");
 MODULE_DESCRIPTION("An UIO dummy driver");
