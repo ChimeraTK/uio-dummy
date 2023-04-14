@@ -71,22 +71,13 @@
 
 static struct uio_info *info;
 static struct device *dev;
-static int irq = 10;
 static unsigned long long mem_size = 2692759552 + 32;
 
-module_param(irq, int, S_IRUGO);
 module_param(mem_size, ullong, S_IRUGO);
 
 static void my_release(struct device *dev)
 {
 	printk(KERN_INFO "releasing my uio device\n");
-}
-
-static irqreturn_t my_handler(int irq, struct uio_info *dev_info)
-{
-	static int count = 0;
-	printk(KERN_INFO "In UIO handler, count=%d\n", ++count);
-	return IRQ_HANDLED;
 }
 
 // MODULE_PARAM_DESC(base_addr, "Base address shift for memory address");
@@ -102,11 +93,8 @@ static int __init my_init(void)
 	info = kzalloc(sizeof(struct uio_info), GFP_KERNEL);
 	info->name = "uio_dummy_device";
 	info->version = "0.0.1";
-	info->irq = irq;
-	info->irq_flags = IRQF_SHARED;
-	info->handler = my_handler;
+	info->irq = UIO_IRQ_NONE;
 
-	printk(KERN_INFO "Allocating %llu bytes for mem0", mem_size);
 	mem = &info->mem[0];
 	mem->memtype = UIO_MEM_VIRTUAL;
 	mem->addr = (phys_addr_t)vmalloc(mem_size);
@@ -121,7 +109,7 @@ static int __init my_init(void)
 		printk(KERN_INFO "Failing to register uio device\n");
 		return -1;
 	}
-	printk(KERN_INFO "Registered UIO handler for IRQ=%d\n", irq);
+	printk(KERN_INFO "Allocating %llu bytes for mem0", mem_size);
 	return 0;
 }
 
@@ -131,7 +119,7 @@ static void __exit my_exit(void)
 	uio_unregister_device(info);
 	vfree((const void *)mem->addr);
 	device_unregister(dev);
-	printk(KERN_INFO "Un-Registered UIO handler for IRQ=%d\n", irq);
+	printk(KERN_INFO "Un-Registered UIO handler\n");
 	kfree(info);
 	kfree(dev);
 }
