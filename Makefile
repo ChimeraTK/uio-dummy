@@ -1,7 +1,15 @@
 obj-m += uio-dummy.o
 
+SRC := $(shell pwd)
+KERNEL_SRC ?= /lib/modules/$(shell uname -r)/build
+
 all:
-	make -C /lib/modules/$(shell uname -r)/build V=1 M=$(PWD) modules
+	$(MAKE) -C $(KERNEL_SRC) M=$(SRC)
+
+modules_install:
+	$(MAKE) -C $(KERNEL_SRC) M=$(SRC) modules_install
 
 clean:
-	make -C /lib/modules/$(shell uname -r)/build V=1 M=$(PWD) clean
+	rm -f *.o *~ core .depend .*.cmd *.ko *.mod.c
+	rm -f Module.markers Module.symvers modules.order
+	rm -rf .tmp_versions Modules.symvers
