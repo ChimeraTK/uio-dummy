@@ -72,6 +72,7 @@
 #include <linux/device.h>
 #include <linux/uio_driver.h>
 #include <linux/version.h>
+#include <linux/vmalloc.h>
 
 static struct uio_info *info;
 static struct device *dev;
