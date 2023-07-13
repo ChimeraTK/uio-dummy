@@ -1,3 +1,10 @@
+// SPDX-FileCopyrightText: Deutsches Elektronen-Synchrotron DESY, MSK, ChimeraTK Project <chimeratk-support@desy.de>
+// SPDX-License-Identifier: GPL-2.0
+
+// This kernel module is a simple UIO dummy driver mainly useful for debugging and testing
+// the ChimeraTK UIO backend. It is based on the file mentioned below, retrieved from
+// https://github.com/bgmerrell/driver-samples/blob/master/s_18/lab8_uio_api.c
+
 /* **************** LF331:1.6 s_18/lab8_uio_api.c **************** */
 /*
  * The code herein is: Copyright the Linux Foundation, 2011
