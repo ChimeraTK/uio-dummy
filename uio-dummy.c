@@ -97,54 +97,56 @@ static void my_release(struct device *dev)
 
 static int uio_dummy_proc_show(struct seq_file *m, void *v)
 {
-    seq_printf(m, "UIO Dummy driver v%s\n", UIO_DUMMY_VERSION);
-    seq_printf(m, "    Allocated memory: %llu\n", mem_size);
-    
-    return 0;
+	seq_printf(m, "UIO Dummy driver v%s\n", UIO_DUMMY_VERSION);
+	seq_printf(m, "    Allocated memory: %llu\n", mem_size);
+
+	return 0;
 }
 
 static int uio_dummy_proc_open(struct inode *inode, struct file *file)
 {
-    return single_open(file, uio_dummy_proc_show, NULL);
+	return single_open(file, uio_dummy_proc_show, NULL);
 }
 
-static ssize_t uio_dummy_proc_write(struct file* file, const char __user* ubuf, size_t count, loff_t* ppos)
+static ssize_t uio_dummy_proc_write(struct file *file, const char __user *ubuf,
+				    size_t count, loff_t *ppos)
 {
-    if (irqs_enabled) {
-    printk(KERN_DEBUG "Triggering event through write of proc file\n");
-    uio_event_notify(info);
-    } else {
-        printk(KERN_DEBUG "User did not enable IRQs, not firing\n");
-    }
+	if (irqs_enabled) {
+		printk(KERN_DEBUG
+		       "Triggering event through write of proc file\n");
+		uio_event_notify(info);
+	} else {
+		printk(KERN_DEBUG "User did not enable IRQs, not firing\n");
+	}
 
-    return count;
+	return count;
 }
 
-#if LINUX_VERSION_CODE < KERNEL_VERSION(5,6,0)
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5, 6, 0)
 static struct file_operations uio_dummy_proc_operations = {
-    .owner = THIS_MODULE,
-    .open = uio_dummy_proc_open,
-    .read = seq_read,
-    .write = uio_dummy_proc_write,
-    .llseek = seq_lseek,
-    .release = single_release
+	.owner = THIS_MODULE,
+	.open = uio_dummy_proc_open,
+	.read = seq_read,
+	.write = uio_dummy_proc_write,
+	.llseek = seq_lseek,
+	.release = single_release
 };
 #else
 static struct proc_ops uio_dummy_proc_operations = {
-    .proc_open = uio_dummy_proc_open,
-    .proc_read = seq_read,
-    .proc_write = uio_dummy_proc_write,
-    .proc_lseek = seq_lseek,
-    .proc_release = single_release
+	.proc_open = uio_dummy_proc_open,
+	.proc_read = seq_read,
+	.proc_write = uio_dummy_proc_write,
+	.proc_lseek = seq_lseek,
+	.proc_release = single_release
 };
 #endif
 
 static int uio_dummy_irq_control(struct uio_info *dev_info, s32 irq_on)
 {
-    printk(KERN_INFO "Userspace requested IRQ generation %d\n", irq_on);
-    irqs_enabled = irq_on != 0;
+	printk(KERN_INFO "Userspace requested IRQ generation %d\n", irq_on);
+	irqs_enabled = irq_on != 0;
 
-    return 0;
+	return 0;
 }
 
 static int __init uio_dummy_init(void)
@@ -159,13 +161,13 @@ static int __init uio_dummy_init(void)
 	info->name = "uio_dummy_device";
 	info->version = UIO_DUMMY_VERSION;
 
-    // CUSTOM -> We do not have a hardware IRQ, but we generate
-    // IRQs towards the user otherwise, in this case by getting our proc
-    // file written to
+	// CUSTOM -> We do not have a hardware IRQ, but we generate
+	// IRQs towards the user otherwise, in this case by getting our proc
+	// file written to
 	info->irq = UIO_IRQ_CUSTOM;
-    info->irqcontrol = uio_dummy_irq_control;
+	info->irqcontrol = uio_dummy_irq_control;
 
-    // Just allocate a slab of virtual memory to be exposed through mmap
+	// Just allocate a slab of virtual memory to be exposed through mmap
 	mem = &info->mem[0];
 	mem->memtype = UIO_MEM_VIRTUAL;
 	mem->addr = (phys_addr_t)vmalloc(mem_size);
@@ -173,7 +175,7 @@ static int __init uio_dummy_init(void)
 	mem->name = "UIO dummy memory block";
 
 	if (uio_register_device(dev, info) < 0) {
-        vfree((const void*)mem->addr);
+		vfree((const void *)mem->addr);
 		device_unregister(dev);
 		kfree(dev);
 		kfree(info);
@@ -182,7 +184,8 @@ static int __init uio_dummy_init(void)
 	}
 	printk(KERN_INFO "Allocating %llu bytes for mem0", mem_size);
 
-    proc_create_data("uio-dummy", 0666, NULL, &uio_dummy_proc_operations, dev);
+	proc_create_data("uio-dummy", 0666, NULL, &uio_dummy_proc_operations,
+			 dev);
 	return 0;
 }
 
@@ -192,7 +195,7 @@ static void __exit uio_dummy_exit(void)
 	uio_unregister_device(info);
 	vfree((const void *)mem->addr);
 	device_unregister(dev);
-    remove_proc_entry("uio-dummy", NULL);
+	remove_proc_entry("uio-dummy", NULL);
 	printk(KERN_INFO "Un-Registered UIO handler\n");
 	kfree(info);
 	kfree(dev);
