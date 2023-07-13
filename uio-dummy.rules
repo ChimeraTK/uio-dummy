@@ -1,0 +1,1 @@
+SUBSYSTEM=="uio", DEVPATH=="*uio_dummy_device*", ACTION=="add", SYMLINK+="ctkuiodummy", MODE="0666"
