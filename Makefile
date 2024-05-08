@@ -21,6 +21,7 @@ modules_install:
 packaging_install:
 	install -m 644 -D *.c Makefile -t $(DESTDIR)/usr/src/$(DKMS_PKG_NAME)-$(DKMS_PKG_VERSION)/
 	install -m 644 -D uio-dummy.rules -t $(DESTDIR)/lib/udev/rules.d/
+	install -m 644 -D uio-dummy.conf -t $(DESTDIR)/etc/modules-load.d/
 
 clean:
 	rm -f *.o *~ core .depend .*.cmd *.ko *.mod.c
