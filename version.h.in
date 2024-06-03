@@ -1,0 +1,8 @@
+// SPDX-FileCopyrightText: Deutsches Elektronen-Synchrotron DESY, MSK, ChimeraTK Project <chimeratk-support@desy.de>
+// SPDX-License-Identifier: GPL-2.0
+
+#ifndef UIO_DUMMY_VERSION_H
+#define UIO_DUMMY_VERSION_H
+
+#define UIO_DUMMY_VERSION "@uio-dummy_VERSION@"
+#endif

@@ -71,6 +71,9 @@
  * void uio_unregister_device(struct uio_info *info);
  *
 @*/
+
+#include "version.h"
+
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/slab.h>
@@ -85,8 +88,6 @@ static struct uio_info *info;
 static struct device *dev;
 static unsigned long long mem_size = 2692759552 + 32;
 static bool irqs_enabled = false;
-
-#define UIO_DUMMY_VERSION "00.01.00"
 
 module_param(mem_size, ullong, S_IRUGO);
 
