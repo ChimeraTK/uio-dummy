@@ -23,9 +23,20 @@ set(MODULES_LOAD_PATH
     CACHE PATH "Installation folder for automatic module load files")
 execute_process(COMMAND ${UNAME} -r OUTPUT_VARIABLE KERNEL_VERSION_RAW)
 string(STRIP "${KERNEL_VERSION_RAW}" KERNEL_VERSION)
-set(KERNEL_SRC
-    "/lib/modules/${KERNEL_VERSION}/build"
-    CACHE PATH "Folder that contains the kernel development parts")
+
+# First check if we can build for the currently running kernel version
+set(KERNEL_SRC_CANDIDATE "/lib/modules/${KERNEL_VERSION}/build")
+if (NOT EXISTS ${KERNEL_SRC_CANDIDATE})
+    message(STATUS "Cannot build module for the currently running kernel, trying to find a suitable version")
+    # Find all potential kernel modules
+    file(GLOB MODULES LIST_DIRECTORIES true /lib/modules/*/build)
+
+    # Sort and reverse list to have the latest version as first 
+    list(SORT MODULES)
+    list(GET MODULES -1 ${KERNEL_SRC_CANDIDATE})
+endif()
+set(KERNEL_SRC ${KERNEL_SRC_CANDIDATE}
+        CACHE PATH "Folder that contains the kernel development parts")
 
 message(STATUS "Putting udev rules into ${UDEV_RULES_PATH}")
 message(STATUS "Putting DKMS sources into ${DKMS_TARGET_PATH}")
