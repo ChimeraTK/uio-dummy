@@ -156,7 +156,10 @@ static int __init uio_dummy_init(void)
 	dev = kzalloc(sizeof(struct device), GFP_KERNEL);
 	dev_set_name(dev, "uio_dummy_device");
 	dev->release = my_release;
-	device_register(dev);
+	if (device_register(dev) < 0) {
+		put_device(dev);
+		return -1;
+	}
 
 	info = kzalloc(sizeof(struct uio_info), GFP_KERNEL);
 	info->name = "uio_dummy_device";
