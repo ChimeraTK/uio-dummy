@@ -34,6 +34,9 @@ if (NOT EXISTS ${KERNEL_SRC_CANDIDATE})
     # Sort and reverse list to have the latest version as first 
     list(SORT MODULES)
     list(GET MODULES -1 KERNEL_SRC_CANDIDATE)
+
+    string(REPLACE "/" ";" NEWEST_MODULE_PATH ${KERNEL_SRC_CANDIDATE})
+    list(GET NEWEST_MODULE_PATH 3 KERNEL_VERSION)
 endif()
 set(KERNEL_SRC ${KERNEL_SRC_CANDIDATE}
         CACHE PATH "Folder that contains the kernel development parts")
