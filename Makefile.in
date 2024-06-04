@@ -1,7 +1,9 @@
 obj-m += uio-dummy.o
 
 SRC := $(shell pwd)
-KERNEL_SRC ?= /lib/modules/$(shell uname -r)/build
+CURRENT_KERNEL := $(shell uname -r)
+KVERSION ?= $(CURRENT_KERNEL)
+KERNEL_SRC ?= /lib/modules/$(KVERSION)/build
 
 all:
 	$(MAKE) -C $(KERNEL_SRC) M=$(SRC)
