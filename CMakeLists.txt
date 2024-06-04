@@ -33,10 +33,15 @@ if (NOT EXISTS ${KERNEL_SRC_CANDIDATE})
 
     # Sort and reverse list to have the latest version as first 
     list(SORT MODULES)
-    list(GET MODULES -1 KERNEL_SRC_CANDIDATE)
+    if (MODULES)
+        list(GET MODULES -1 KERNEL_SRC_CANDIDATE)
 
-    string(REPLACE "/" ";" NEWEST_MODULE_PATH ${KERNEL_SRC_CANDIDATE})
-    list(GET NEWEST_MODULE_PATH 3 KERNEL_VERSION)
+        string(REPLACE "/" ";" NEWEST_MODULE_PATH ${KERNEL_SRC_CANDIDATE})
+        list(GET NEWEST_MODULE_PATH 3 KERNEL_VERSION)
+    else()
+        message(STATUS "No kernel source found, not building module")
+        set(KERNEL_VERSION kernel-NOTFOUND)
+    endif()
 endif()
 set(KERNEL_SRC ${KERNEL_SRC_CANDIDATE}
         CACHE PATH "Folder that contains the kernel development parts")
@@ -59,13 +64,15 @@ install(FILES ${CMAKE_CURRENT_BINARY_DIR}/kbuild/Makefile
 install(FILES uio-dummy.rules DESTINATION ${UDEV_RULES_PATH})
 install(FILES uio-dummy.conf DESTINATION ${MODULES_LOAD_PATH})
 
-add_custom_command(
-  OUTPUT uio-dummy.ko
-  COMMAND ${MAKE} KERNEL_SRC=${KERNEL_SRC}
-  WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/kbuild
-  DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/kbuild/Makefile
-  VERBATIM)
-add_custom_target(module ALL DEPENDS uio-dummy.ko)
+if (KERNEL_VERSION)
+    add_custom_command(
+      OUTPUT uio-dummy.ko
+      COMMAND ${MAKE} KERNEL_SRC=${KERNEL_SRC}
+      WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/kbuild
+      DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/kbuild/Makefile
+      VERBATIM)
+    add_custom_target(module ALL DEPENDS uio-dummy.ko)
+endif()
 
 if (DKMS)
   add_custom_target(
