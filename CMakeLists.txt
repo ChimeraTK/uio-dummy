@@ -6,7 +6,7 @@ set(${PROJECT_NAME}_MINOR_VERSION 01)
 set(${PROJECT_NAME}_PATCH_VERSION 02)
 include(cmake/set_version_numbers.cmake)
 
-find_program(DKMS dkms REQUIRED)
+find_program(DKMS dkms)
 find_program(UNAME uname REQUIRED)
 find_program(MAKE make REQUIRED)
 
@@ -52,10 +52,15 @@ add_custom_command(
   DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/kbuild/Makefile
   VERBATIM)
 add_custom_target(module ALL DEPENDS uio-dummy.ko)
-add_custom_target(
-  dkms-install COMMAND ${DKMS} install -m ${PROJECT_NAME} -v
-                       ${${PROJECT_NAME}_VERSION} -k ${KERNEL_VERSION})
 
-add_custom_target(
-  dkms-remove COMMAND ${DKMS} remove -m ${PROJECT_NAME} -v
+if (DKMS)
+  add_custom_target(
+    dkms-install COMMAND ${DKMS} install -m ${PROJECT_NAME} -v
+                         ${${PROJECT_NAME}_VERSION} -k ${KERNEL_VERSION})
+
+  add_custom_target(
+    dkms-remove COMMAND ${DKMS} remove -m ${PROJECT_NAME} -v
                       ${${PROJECT_NAME}_VERSION} -k ${KERNEL_VERSION})
+else()
+    message(WARNING "DKMS executable not found, disabling DKMS targets")
+endif()
