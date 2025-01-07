@@ -1,5 +1,5 @@
 PACKAGE_NAME="uio-dummy"
-PACKAGE_VERSION="@uio-dummy_VERSION@"
+PACKAGE_VERSION="@CMAKE_PROJECT_VERSION@"
 CLEAN="make clean"
 BUILT_MODULE_NAME[0]="uio-dummy"
 MAKE[0]="make KVERSION=$kernelver"

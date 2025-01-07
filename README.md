@@ -14,9 +14,5 @@ echo 1 > /proc/uio-dummy
 Building the module
 -------------------
 
-The preferred way is to use cmake to generate the Kbuild Makefile and build the module.
-If DKMS is found during configuration, the cmake build will also provide targets `dkms-install`
-and `dkms-remove` to simplify the dkms-based installation.
-
-If you want to opt not to use cmake, create a version.h file from version.h.in and set the
-define `UIO_DUMMY_VERSION` to a sensible value and build using `make -f Makefile.in`
+You can either use Makefile.kernel directly to build the module or use cmake and `make install`
+to install the module using dkms.

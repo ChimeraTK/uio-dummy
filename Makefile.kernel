@@ -1,0 +1,23 @@
+uio-adummy-objs := uio-dummy.o
+obj-m += uio-dummy.o
+
+KVERSION = $(shell uname -r)
+
+ccflags-y = -Wall -Wuninitialized
+
+all:
+	make -C /lib/modules/$(KVERSION)/build V=1 M=$(PWD) modules
+
+#Compile with debug flag, causes lots of kernel output, which fills the logs
+#and slows down the driver.
+debug:
+	make all
+
+#In addition to the debug output the driver is compiled with code coverage.
+#It only loads on a kernel with code coverage enabled.
+full_debug:
+	KCPPFLAGS="-fprofile-arcs -ftest-coverage" make all
+
+clean:
+	make -C /lib/modules/$(KVERSION)/build V=1 M=$(PWD) clean
+
