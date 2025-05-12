@@ -1,12 +1,15 @@
 cmake_minimum_required(VERSION 3.16)
 project("uio-dummy")
 
+include(GNUInstallDirs)
+
 set(${PROJECT_NAME}_MAJOR_VERSION 00)
 set(${PROJECT_NAME}_MINOR_VERSION 02)
 set(${PROJECT_NAME}_PATCH_VERSION 00)
 set(CMAKE_PROJECT_VERSION ${${PROJECT_NAME}_MAJOR_VERSION}.${${PROJECT_NAME}_MINOR_VERSION}.${${PROJECT_NAME}_PATCH_VERSION})
 
-set(DKMS_DEST /usr/src/uio-dummy-${CMAKE_PROJECT_VERSION})
+set(DKMS_DEST ${CMAKE_INSTALL_PREFIX}/src/uio-dummy-${CMAKE_PROJECT_VERSION})
+
 
 install(DIRECTORY DESTINATION ${DKMS_DEST})
 
@@ -32,12 +35,12 @@ install(FILES
 
 install(FILES
   "${CMAKE_SOURCE_DIR}/10-uio-dummy.rules"
-  DESTINATION /etc/udev/rules.d
+  DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/udev/rules.d
 )
 
 install(FILES
   "${CMAKE_SOURCE_DIR}/uio-dummy.conf"
-  DESTINATION /etc/modules-load.d
+  DESTINATION ${CMAKE_INSTALL_SYSCONFDIR}/modules-load.d
 )
 
 configure_file(${CMAKE_SOURCE_DIR}/dkms-run.sh.in dkms-run.sh @ONLY)
