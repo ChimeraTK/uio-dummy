@@ -84,17 +84,17 @@
 #include <linux/version.h>
 #include <linux/vmalloc.h>
 
-#define UIO_DUMMY_NUM_MAPS 3
-
 static struct uio_info *info;
 static struct device *dev;
-static unsigned long long mem_sizes[UIO_DUMMY_NUM_MAPS] = {
-	2692759552 + 32,
-	2692759552 + 32,
-	2692759552 + 32,
+static int num_maps = 3;
+static unsigned long long mem_sizes[MAX_UIO_MAPS] = {
+	81920,
+	2684477440,
+	81920,
 };
 static bool irqs_enabled = false;
 
+module_param(num_maps, int, S_IRUGO);
 module_param_array(mem_sizes, ullong, NULL, S_IRUGO);
 
 static void my_release(struct device *dev)
