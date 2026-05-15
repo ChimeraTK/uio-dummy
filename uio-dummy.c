@@ -23,7 +23,7 @@
  * License, which you should have received with the source.
  *
  */
-/*  
+/*
  * The UIO API
  *
  * In order to write a user-space driver using the UIO API with a
@@ -64,9 +64,9 @@
  *
  * You'll need to fill in entries for at least name, irq, irq_flags
  * and handler, which should return IRQ_HANDLED.
- *  
+ *
  * The structure should be register and unregistered with:
- *      
+ *
  * int uio_register_device(struct device *parent, struct uio_info *info);
  * void uio_unregister_device(struct uio_info *info);
  *
@@ -86,10 +86,18 @@
 
 static struct uio_info *info;
 static struct device *dev;
-static unsigned long long mem_size = 2692759552 + 32;
+static int num_maps = 3;
+static unsigned long long mem_sizes[MAX_UIO_MAPS] = {
+	81920,
+	2684477440,
+	81920,
+	81920,
+	81920,
+};
 static bool irqs_enabled = false;
 
-module_param(mem_size, ullong, S_IRUGO);
+module_param(num_maps, int, S_IRUGO);
+module_param_array(mem_sizes, ullong, NULL, S_IRUGO);
 
 static void my_release(struct device *dev)
 {
@@ -98,8 +106,11 @@ static void my_release(struct device *dev)
 
 static int uio_dummy_proc_show(struct seq_file *m, void *v)
 {
+	int i;
+
 	seq_printf(m, "UIO Dummy driver v%s\n", UIO_DUMMY_VERSION);
-	seq_printf(m, "    Allocated memory: %llu\n", mem_size);
+	for (i = 0; i < num_maps; i++)
+		seq_printf(m, "    Allocated memory map%d: %llu\n", i, mem_sizes[i]);
 
 	return 0;
 }
@@ -152,7 +163,14 @@ static int uio_dummy_irq_control(struct uio_info *dev_info, s32 irq_on)
 
 static int __init uio_dummy_init(void)
 {
-	struct uio_mem *mem;
+	int i;
+
+	if (num_maps < 1 || num_maps > MAX_UIO_MAPS) {
+		printk(KERN_ERR "uio_dummy: num_maps must be between 1 and %d\n",
+		       MAX_UIO_MAPS);
+		return -EINVAL;
+	}
+
 	dev = kzalloc(sizeof(struct device), GFP_KERNEL);
 	dev_set_name(dev, "uio_dummy_device");
 	dev->release = my_release;
@@ -171,22 +189,25 @@ static int __init uio_dummy_init(void)
 	info->irq = UIO_IRQ_CUSTOM;
 	info->irqcontrol = uio_dummy_irq_control;
 
-	// Just allocate a slab of virtual memory to be exposed through mmap
-	mem = &info->mem[0];
-	mem->memtype = UIO_MEM_VIRTUAL;
-	mem->addr = (phys_addr_t)vmalloc(mem_size);
-	mem->size = mem_size;
-	mem->name = "UIO dummy memory block";
+	for (i = 0; i < num_maps; i++) {
+		info->mem[i].memtype = UIO_MEM_VIRTUAL;
+		info->mem[i].addr = (phys_addr_t)vzalloc(mem_sizes[i]);
+		info->mem[i].size = mem_sizes[i];
+		info->mem[i].name = "UIO dummy memory block";
+	}
 
 	if (uio_register_device(dev, info) < 0) {
-		vfree((const void *)mem->addr);
+		for (i = 0; i < num_maps; i++)
+			vfree((const void *)info->mem[i].addr);
 		device_unregister(dev);
 		kfree(dev);
 		kfree(info);
 		printk(KERN_INFO "Failing to register uio device\n");
 		return -1;
 	}
-	printk(KERN_INFO "Allocating %llu bytes for mem0", mem_size);
+
+	for (i = 0; i < num_maps; i++)
+		printk(KERN_INFO "Allocating %llu bytes for mem%d", mem_sizes[i], i);
 
 	proc_create_data("uio-dummy", 0666, NULL, &uio_dummy_proc_operations,
 			 dev);
@@ -195,9 +216,11 @@ static int __init uio_dummy_init(void)
 
 static void __exit uio_dummy_exit(void)
 {
-	struct uio_mem *mem = &info->mem[0];
+	int i;
+
 	uio_unregister_device(info);
-	vfree((const void *)mem->addr);
+	for (i = 0; i < num_maps; i++)
+		vfree((const void *)info->mem[i].addr);
 	device_unregister(dev);
 	remove_proc_entry("uio-dummy", NULL);
 	printk(KERN_INFO "Un-Registered UIO handler\n");
