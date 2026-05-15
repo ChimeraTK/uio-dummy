@@ -91,6 +91,8 @@ static unsigned long long mem_sizes[MAX_UIO_MAPS] = {
 	81920,
 	2684477440,
 	81920,
+	81920,
+	81920,
 };
 static bool irqs_enabled = false;
 
@@ -107,7 +109,7 @@ static int uio_dummy_proc_show(struct seq_file *m, void *v)
 	int i;
 
 	seq_printf(m, "UIO Dummy driver v%s\n", UIO_DUMMY_VERSION);
-	for (i = 0; i < UIO_DUMMY_NUM_MAPS; i++)
+	for (i = 0; i < num_maps; i++)
 		seq_printf(m, "    Allocated memory map%d: %llu\n", i, mem_sizes[i]);
 
 	return 0;
@@ -163,6 +165,12 @@ static int __init uio_dummy_init(void)
 {
 	int i;
 
+	if (num_maps < 1 || num_maps > MAX_UIO_MAPS) {
+		printk(KERN_ERR "uio_dummy: num_maps must be between 1 and %d\n",
+		       MAX_UIO_MAPS);
+		return -EINVAL;
+	}
+
 	dev = kzalloc(sizeof(struct device), GFP_KERNEL);
 	dev_set_name(dev, "uio_dummy_device");
 	dev->release = my_release;
@@ -181,7 +189,7 @@ static int __init uio_dummy_init(void)
 	info->irq = UIO_IRQ_CUSTOM;
 	info->irqcontrol = uio_dummy_irq_control;
 
-	for (i = 0; i < UIO_DUMMY_NUM_MAPS; i++) {
+	for (i = 0; i < num_maps; i++) {
 		info->mem[i].memtype = UIO_MEM_VIRTUAL;
 		info->mem[i].addr = (phys_addr_t)vzalloc(mem_sizes[i]);
 		info->mem[i].size = mem_sizes[i];
@@ -189,7 +197,7 @@ static int __init uio_dummy_init(void)
 	}
 
 	if (uio_register_device(dev, info) < 0) {
-		for (i = 0; i < UIO_DUMMY_NUM_MAPS; i++)
+		for (i = 0; i < num_maps; i++)
 			vfree((const void *)info->mem[i].addr);
 		device_unregister(dev);
 		kfree(dev);
@@ -198,7 +206,7 @@ static int __init uio_dummy_init(void)
 		return -1;
 	}
 
-	for (i = 0; i < UIO_DUMMY_NUM_MAPS; i++)
+	for (i = 0; i < num_maps; i++)
 		printk(KERN_INFO "Allocating %llu bytes for mem%d", mem_sizes[i], i);
 
 	proc_create_data("uio-dummy", 0666, NULL, &uio_dummy_proc_operations,
@@ -211,7 +219,7 @@ static void __exit uio_dummy_exit(void)
 	int i;
 
 	uio_unregister_device(info);
-	for (i = 0; i < UIO_DUMMY_NUM_MAPS; i++)
+	for (i = 0; i < num_maps; i++)
 		vfree((const void *)info->mem[i].addr);
 	device_unregister(dev);
 	remove_proc_entry("uio-dummy", NULL);
